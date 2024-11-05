@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Punteado</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+
+        #contenedor {
+            position: relative;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            border: 5px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #disco {
+            position: relative;
+            width: 90%;
+            height: 90%;
+            border-radius: 50%;
+            border: 5px solid #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation-play-state: paused;
+        }
+
+        .orificio {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: white;
+            border: 3px solid black;
+            cursor: pointer;
+            transition: background-color 0.5s;
+        }
+
+        #orificio1 {
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #orificio2 {
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        #orificio3 {
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .estadistica {
+            position: absolute;
+            font-size: 16px;
+            font-weight: bold;
+            color: black;
+            text-align: center;
+            width: 100px;
+        }
+
+        #estadistica1 {
+            top: -50px; /* Ajusta la posición vertical para que esté sobre el orificio 1 */
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #estadistica2 {
+            top: 60%; /* Ajusta la posición vertical para que esté sobre el orificio 2 */
+            left: -25px; /* Ajusta la posición horizontal para centrar sobre el orificio */
+        }
+
+        #estadistica3 {
+            top: 60%; /* Ajusta la posición vertical para que esté sobre el orificio 3 */
+            right: -25px; /* Ajusta la posición horizontal para centrar sobre el orificio */
+        }
+
+        #cuadro-central {
+            position: absolute;
+            width: 150px;
+            height: 120px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            padding: 10px;
+        }
+
+        #cuadro-central h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        #cuadro-central p {
+            margin: 5px 0;
+            font-size: 18px;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="contenedor">
+        <div id="disco">
+            <div id="orificio1" class="orificio" onclick="verificarAcierto(1, this)"></div>
+            <div id="orificio2" class="orificio" onclick="verificarAcierto(2, this)"></div>
+            <div id="orificio3" class="orificio" onclick="verificarAcierto(3, this)"></div>
+
+            <div id="estadistica1" class="estadistica"></div>
+            <div id="estadistica2" class="estadistica"></div>
+            <div id="estadistica3" class="estadistica"></div>
+        </div>
+        <div id="cuadro-central">
+            <h2 id="aciertosTotales">0 ACIERTOS</h2>
+            <p id="promedioAciertos">0.00 SEG. DE ACIERTO</p>
+            <p id="errores">0 ERRORES</p>
+        </div>
+    </div>
+
+    <button onclick="iniciarTest()">Iniciar</button>
+    <a href="/index.html">Volver</a>
+
+
+    <script>
+        let aciertosTotales = 0;
+        let errores = 0;
+        let secuenciaActual = 1;
+        let testActivo = false;
+        let tiemposPorOrificio = [0, 0, 0];
+        let aciertosPorOrificio = [0, 0, 0];
+        let tiempoInicio = Date.now();
+        let tiempoLimite = 30000; // 30 segundos
+
+        function iniciarTest() {
+            aciertosTotales = 0;
+            errores = 0;
+            secuenciaActual = 1;
+            testActivo = true;
+            tiemposPorOrificio = [0, 0, 0];
+            aciertosPorOrificio = [0, 0, 0];
+            tiempoInicio = Date.now();
+            document.getElementById("disco").style.animation = "spin 5s linear infinite";
+
+            setTimeout(finalizarTest, tiempoLimite); // Detener después de 30s
+        }
+
+        function verificarAcierto(orificio, elemento) {
+            if (!testActivo) return;
+
+            if (orificio !== secuenciaActual) {
+                errores++;
+                actualizarPuntuacion();
+                return;
+            }
+
+            const tiempoAcierto = (Date.now() - tiempoInicio) / 1000;
+            tiemposPorOrificio[orificio - 1] += tiempoAcierto;
+            aciertosPorOrificio[orificio - 1]++;
+            aciertosTotales++;
+
+            elemento.style.backgroundColor = "red";
+            setTimeout(() => elemento.style.backgroundColor = "white", 500);
+
+            secuenciaActual = secuenciaActual === 3 ? 1 : secuenciaActual + 1;
+            actualizarPuntuacion();
+        }
+
+        function actualizarPuntuacion() {
+            document.getElementById("aciertosTotales").textContent = `${aciertosTotales} ACIERTOS`;
+            document.getElementById("errores").textContent = `${errores} ERRORES`;
+        }
+
+        function finalizarTest() {
+            testActivo = false;
+            document.getElementById("disco").style.animation = "none";
+            mostrarEstadisticasFinales();
+        }
+
+        function mostrarEstadisticasFinales() {
+            for (let i = 0; i < 3; i++) {
+                const promedio = (tiemposPorOrificio[i] / (aciertosPorOrificio[i] || 1)).toFixed(2);
+                document.getElementById(`estadistica${i + 1}`).textContent =
+                    `${aciertosPorOrificio[i]} aciertos\n${promedio} seg/acierto`;
+            }
+
+            const promedioTotal = (tiemposPorOrificio.reduce((a, b) => a + b) / (aciertosTotales || 1)).toFixed(2);
+            document.getElementById("promedioAciertos").textContent = `${promedioTotal} SEG. DE ACIERTO`;
+        }
+    </script>
+
+</body>
+</html>

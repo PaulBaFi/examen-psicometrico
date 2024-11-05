@@ -1,0 +1,16 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* Colors brands */
+    --primary: ""
+}
+
+/* Components */
+.wrapper {
+    max-width: 100%;
+    width: 1400px;
+}

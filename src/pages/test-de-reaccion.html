@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador: Test de Reacción</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    #semaforo {
+      width: 100px;
+      height: 300px;
+      background-color: #f0ed45; /* Color de fondo del semáforo */
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .luz {
+      border-radius: 50%;
+      margin: 10px auto;
+      opacity: 0.4; /* Luces apagadas por defecto */
+    }
+    #red {
+      width: 70px;
+      height: 70px;
+      background-color: red;
+    }
+    #green {
+      width: 50px;
+      height: 50px;
+      background-color: green;
+    }
+    .active {
+      opacity: 1; /* Luces encendidas */
+    }
+    #message {
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+    #startBtn, #backToMenuBtn {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    #reactionTimes {
+      margin-top: 20px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Simulador: Test de Reacción</h1>
+
+<!-- Estructura del semáforo con luces -->
+<div id="semaforo">
+  <div id="red" class="luz"></div>  <!-- Luz roja -->
+  <div id="green" class="luz"></div> <!-- Luz verde -->
+</div>
+
+<div id="message">Presiona "Iniciar" para comenzar</div>
+<button id="startBtn">Iniciar</button>
+<a href="/index.html">Volver</a>
+
+<div id="reactionTimes"></div> <!-- Mostrar tiempos de reacción -->
+
+<script>
+  let isGreenLight = false;
+  let isRedLight = false;
+  let reactionTimes = [];
+  let attempts = 0;
+  let startTime;
+  const maxAttempts = 10;
+  const approvalTime = 0.43; // Tiempo límite de aprobación en segundos
+
+  const greenLight = document.getElementById("green");
+  const redLight = document.getElementById("red");
+  const message = document.getElementById("message");
+  const startBtn = document.getElementById("startBtn");
+  const reactionTimesDiv = document.getElementById("reactionTimes");
+
+  // Función para iniciar el test
+  function startTest() {
+    message.textContent = "Presiona el acelerador (Flecha Arriba) para iniciar.";
+    startBtn.disabled = true; // Deshabilita el botón de inicio
+    resetLights();  // Apaga todas las luces al iniciar
+  }
+
+  // Función que apaga las luces (pero manteniendo el color visible)
+  function resetLights() {
+    greenLight.classList.remove("active");
+    redLight.classList.remove("active");
+    isGreenLight = false;
+    isRedLight = false;
+  }
+
+  // Función cuando se presiona la Flecha Arriba (acelerador)
+  function pressAccelerator() {
+    if (!isGreenLight) {
+      greenLight.classList.add("active"); // Enciende la luz verde
+      isGreenLight = true;
+      message.textContent = "¡Acelerando! Espera a que el semáforo cambie a rojo...";
+      setTimeout(turnOnRed, Math.random() * 3000 + 2000); // Cambia a rojo tras un tiempo aleatorio
+    }
+  }
+
+  // Función para encender la luz roja
+  function turnOnRed() {
+    if (isGreenLight && !isRedLight) {
+      redLight.classList.add("active"); // Enciende la luz roja
+      greenLight.classList.remove("active"); // Apaga la luz verde
+      isRedLight = true;
+      isGreenLight = false;
+      startTime = Date.now(); // Marca el tiempo en que se enciende la luz roja
+      message.textContent = "¡Semáforo rojo! Presiona el freno (Flecha Abajo).";
+    }
+  }
+
+  // Función cuando se presiona la Flecha Abajo (freno)
+  function pressBrake() {
+    if (isRedLight) {
+      const endTime = Date.now();
+      const reactionTime = (endTime - startTime) / 1000; // Calcula tiempo en segundos
+      reactionTimes.push(reactionTime); // Guarda el tiempo de reacción
+      attempts++;
+      redLight.classList.remove("active"); // Apaga la luz roja
+      isRedLight = false;
+      message.textContent = `Tiempo de reacción: ${reactionTime.toFixed(2)} segundos`;
+      updateReactionTimes(); // Actualiza los tiempos en pantalla
+
+      if (attempts < maxAttempts) {
+        setTimeout(startTest, 2000); // Espera 2 segundos y comienza de nuevo
+      } else {
+        calculateResult();
+      }
+    }
+  }
+
+  // Función para actualizar los tiempos en pantalla
+  function updateReactionTimes() {
+    reactionTimesDiv.innerHTML = `<strong>Tiempos de reacción:</strong><br>` + 
+      reactionTimes.map((time, index) => `Intento ${index + 1}: ${time.toFixed(2)} segundos`).join('<br>');
+  }
+
+  // Calcula el resultado final
+  function calculateResult() {
+    const avgTime = reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length;
+    message.textContent = `Promedio de tiempo de reacción: ${avgTime.toFixed(2)} segundos`;
+
+    if (avgTime <= approvalTime) {
+      message.textContent += " - ¡Aprobado!";
+    } else {
+      message.textContent += " - No aprobado";
+    }
+    startBtn.disabled = false;
+    startBtn.textContent = "Reiniciar";
+  }
+
+  // Maneja las teclas para presionar acelerador y freno
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowUp") {
+      pressAccelerator(); // Presiona el acelerador
+    } else if (event.key === "ArrowDown") {
+      pressBrake(); // Presiona el freno
+    }
+  });
+
+  // Inicia el test al presionar el botón "Iniciar"
+  startBtn.addEventListener("click", () => {
+    reactionTimes = [];
+    attempts = 0;
+    reactionTimesDiv.innerHTML = ""; // Limpia los tiempos anteriores
+    startTest();
+  });
+</script>
+
+</body>
+</html>
