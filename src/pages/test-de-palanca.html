@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Coordinación Motriz</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            flex-direction: column;
+        }
+
+        svg {
+            border: 2px solid black;
+            background-color: white;
+        }
+
+        .path {
+            stroke: black;
+            stroke-width: 12;
+            fill: none;
+        }
+
+        .start-point {
+            fill: red;
+        }
+
+        .end-point {
+            fill: green;
+        }
+
+        #status,
+        #timer,
+        #error-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 18px;
+            background-color: white;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+
+        #timer {
+            top: 60px;
+        }
+
+        #error-info {
+            top: 100px;
+        }
+
+        #restart-btn {
+            margin-top: 10px;
+            padding: 10px 15px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="status">Estado: Haz clic en el punto de inicio</div>
+    <div id="timer">Tiempo: 0 segundos</div>
+    <div id="error-info" style="display: none;">Errores: 0 | Tiempo total de error: 0s | Tiempo promedio por error: 0s</div>
+    </br></br></br></br></br>
+
+    <svg width="500" height="500" xmlns="http://www.w3.org/2000/svg">
+        <!-- Punto de inicio -->
+        <circle cx="50" cy="50" r="10" class="start-point" id="start" />
+
+        <!-- Trazado con curvas y zig-zag -->
+        <path id="path" d="M 50 50
+                       C 100 100, 150 0, 200 100
+                       C 250 200, 300 10, 350 150
+                       C 400 250, 250 300, 300 350
+                       L 200 350
+                       L 100 250
+                       L 150 150
+                       C 175 125, 225 175, 250 150
+                       C 275 125, 275 175, 300 200
+                       L 350 300
+                       L 400 400" class="path" />
+
+        <!-- Punto de finalización -->
+        <circle cx="400" cy="400" r="10" class="end-point" id="end" />
+    </svg>
+    </br></br>
+
+    <button id="restart-btn" style="display: none;">Reiniciar</button>
+    <a href="/index.html">Volver</a>
+
+    <script>
+        let isPointerDown = false;
+        let startTime;
+        let timeLimit = 60000; // 60 segundos
+        let errors = 0;
+        let totalErrorTime = 0; // Tiempo total de errores
+        const maxErrors = 12;
+        const statusDisplay = document.getElementById('status');
+        const timerDisplay = document.getElementById('timer');
+        const errorInfoDisplay = document.getElementById('error-info');
+        const path = document.getElementById('path');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // Detección de clic en el punto de inicio
+        document.getElementById('start').addEventListener('mousedown', startTest);
+        document.addEventListener('mouseup', endTest);
+        document.addEventListener('mousemove', trackMovement);
+        restartBtn.addEventListener('click', resetSimulator); // Evento para el botón de reinicio
+
+        // Temporizador
+        let timerInterval;
+
+        function startTimer() {
+            let elapsedTime = 0;
+            timerInterval = setInterval(() => {
+                elapsedTime += 1000;
+                timerDisplay.innerHTML = `Tiempo: ${elapsedTime / 1000} segundos`;
+                if (elapsedTime >= timeLimit) {
+                    clearInterval(timerInterval);
+                    statusDisplay.innerHTML = "Error: Excediste el tiempo límite!";
+                    isPointerDown = false;
+                    showErrorInfo();
+                }
+            }, 1000);
+        }
+
+        // Iniciar el test
+        function startTest() {
+            isPointerDown = true;
+            startTime = Date.now();
+            errors = 0;
+            statusDisplay.innerHTML = "Estado: En progreso";
+            timerDisplay.innerHTML = "Tiempo: 0 segundos"; // Resetear tiempo
+            totalErrorTime = 0; // Reiniciar tiempo de errores
+            errorInfoDisplay.style.display = "none"; // Ocultar información de errores
+            restartBtn.style.display = "none"; // Ocultar botón de reinicio
+            startTimer();
+        }
+
+        // Finalizar el test
+        function endTest(event) {
+            clearInterval(timerInterval);
+
+            if (isPointerDown) {
+                const elapsedTime = Date.now() - startTime;
+
+                if (elapsedTime > timeLimit) {
+                    statusDisplay.innerHTML = "Error: Excediste el tiempo límite!";
+                    totalErrorTime += elapsedTime; // Sumar tiempo de error total
+                    showErrorInfo(); // Mostrar información de errores
+                } else if (event.target.id === 'end') {
+                    statusDisplay.innerHTML = "¡Felicidades, terminaste el circuito!"; // Mensaje de felicitaciones
+                    showErrorInfo(); // Mostrar información de errores
+                } else {
+                    statusDisplay.innerHTML = "Error: Levantaste el puntero antes de terminar.";
+                    totalErrorTime += elapsedTime; // Sumar tiempo de error total
+                    showErrorInfo(); // Mostrar información de errores
+                }
+            }
+            isPointerDown = false;
+            restartBtn.style.display = "block"; // Mostrar botón de reinicio
+        }
+
+        // Detección de movimiento del mouse
+        function trackMovement(event) {
+            if (isPointerDown) {
+                const x = event.clientX;
+                const y = event.clientY;
+
+                // Verificar si el mouse está dentro del SVG (trayectoria)
+                const isInPath = document.elementFromPoint(x, y) === path;
+                const isOnEndPoint = document.elementFromPoint(x, y).id === 'end'; // Verificar si está en el punto final
+
+                if (!isInPath && !isOnEndPoint) {
+                    errors++;
+                    if (errors >= maxErrors) {
+                        statusDisplay.innerHTML = "Error: Demasiados errores (saliste del circuito).";
+                        isPointerDown = false;
+                        clearInterval(timerInterval);
+                        showErrorInfo(); // Mostrar información de errores
+                    } else {
+                        statusDisplay.innerHTML = `Error: Te saliste del trazado (${errors}/${maxErrors} errores).`;
+                    }
+                }
+            }
+        }
+
+        // Mostrar información de errores
+        function showErrorInfo() {
+            const averageErrorTime = errors > 0 ? (totalErrorTime / errors / 1000).toFixed(2) : 0;
+            errorInfoDisplay.innerHTML = `Errores: ${errors} | Tiempo total de error: ${Math.floor(totalErrorTime / 1000)}s | Tiempo promedio por error: ${averageErrorTime}s`;
+            errorInfoDisplay.style.display = "block"; // Mostrar información de errores
+        }
+
+        // Reiniciar el simulador
+        function resetSimulator() {
+            statusDisplay.innerHTML = "Estado: Haz clic en el punto de inicio";
+            timerDisplay.innerHTML = "Tiempo: 0 segundos";
+            errorInfoDisplay.style.display = "none"; // Ocultar información de errores
+            restartBtn.style.display = "none"; // Ocultar botón de reinicio
+            errors = 0; // Reiniciar contador de errores
+            totalErrorTime = 0; // Reiniciar tiempo total de errores
+            isPointerDown = false; // Reiniciar estado del puntero
+        }
+    </script>
+</body>
+
+</html>
